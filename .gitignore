@@ -1,0 +1,6 @@
+build
+package-lock.json
+truffle-config.js
+.secret
+node_modules
+migrations
