@@ -1021,10 +1021,9 @@ contract MRS is ERC20, Ownable, ERC20Burnable {
     uint8 private constant _decimals = 18;
 
     uint256 private _totalSupply = 3 * 10**8 * 10**uint256(_decimals);
-    uint256 private _tFeeTotal;
 
     bool public isAntiWhale;
-    uint256 public maxSell = 3 * 10**uint256(_decimals);
+    uint256 public maxSell = 3000 * 10**uint256(_decimals);
 
     uint256 public antiWhaleSellEnd; // timestamp
 
