@@ -1020,12 +1020,11 @@ contract MRS is ERC20, Ownable, ERC20Burnable {
     string private constant _symbol = "MRS";
     uint8 private constant _decimals = 18;
 
-    uint256 private _totalSupply = 300000000 * 10**uint256(_decimals);
+    uint256 private _totalSupply = 3 * 10**8 * 10**uint256(_decimals);
     uint256 private _tFeeTotal;
-    uint256 private _tBurnTotal;
 
     bool public isAntiWhale;
-    uint256 public maxSell = 3000000000000000000000;
+    uint256 public maxSell = 3 * 10**uint256(_decimals);
 
     uint256 public antiWhaleSellEnd; // timestamp
 
@@ -1035,13 +1034,17 @@ contract MRS is ERC20, Ownable, ERC20Burnable {
     mapping(address => bool) public whitelist;
     mapping(address => mapping(address => uint256)) private _allowances;
     mapping(address => uint256) private _balances;
-
+ 
+    event SetAntiWhale(bool IsAntiWhale);
+    event SetMaxSell(uint256 MaxSell);
+    event SetAntiWhaleEnd(uint256 AntiWhaleSellEnd);
+    
     constructor() ERC20("Metaracers", "MRS") {
         _balances[_msgSender()] = _balances[_msgSender()].add(_totalSupply);
         emit Transfer(address(0), _msgSender(), _totalSupply);
     }
 
-    function addWhitelist(address _addr, bool _isWL) external onlyOwner {
+    function setWhitelist(address _addr, bool _isWL) external onlyOwner {
         whitelist[_addr] = _isWL;
     }
 
@@ -1064,6 +1067,7 @@ contract MRS is ERC20, Ownable, ERC20Burnable {
     function multiTransfer(address[] memory receivers, uint256[] memory amounts)
         public
     {
+        require(receivers.length == amounts.length, 'Invalid _values');
         for (uint256 i = 0; i < receivers.length; i++) {
             transfer(receivers[i], amounts[i]);
         }
@@ -1170,7 +1174,7 @@ contract MRS is ERC20, Ownable, ERC20Burnable {
             amount <= _balances[sender],
             "ERC20: amount must be less or equal to balance"
         );
-        require(!blacklist[sender] && !blacklist[recipient]);
+        require(!blacklist[sender] && !blacklist[recipient],"anti bot");
 
         if (isAntiWhale) {
             antiWhale(sender, amount);
@@ -1182,19 +1186,6 @@ contract MRS is ERC20, Ownable, ERC20Burnable {
         emit Transfer(sender, recipient, amount);
     }
 
-    function burn(uint256 amount) public virtual override onlyOwner {
-        _burn(_msgSender(), amount);
-    }
-
-    function _burn(address account, uint256 amount) internal override {
-        require(amount != 0);
-        require(amount <= _balances[account]);
-        _totalSupply = _totalSupply.sub(amount);
-        _tBurnTotal = _tBurnTotal.add(amount);
-        _balances[account] = _balances[account].sub(amount);
-        emit Transfer(account, address(0), amount);
-    }
-
     function totalSupply() public view override returns (uint256) {
         return _totalSupply;
     }
@@ -1203,12 +1194,9 @@ contract MRS is ERC20, Ownable, ERC20Burnable {
         return _balances[owner];
     }
 
-    function totalBurn() public view returns (uint256) {
-        return _tBurnTotal;
-    }
-
     function setAntiWhale(bool _isAntiWhale) external onlyOwner {
         isAntiWhale = _isAntiWhale;
+        emit SetAntiWhale(_isAntiWhale);
     }
 
     function antiWhale(
@@ -1226,25 +1214,20 @@ contract MRS is ERC20, Ownable, ERC20Burnable {
                 lastTrade: curTime,
                 amount: _amount
             });
-        } else if (
-            traders[_sender]["SELL"].lastTrade  > 0
-        ) {
-            revert("Wait for next trade");
         } else {
-            traders[_sender]["SELL"] = TraderInfo({
-                lastTrade: curTime,
-                amount: _amount
-            });
+            revert("Wait for next trade");
         }
       }
     }
 
     function setMaxSell(uint256 _maxSell) external onlyOwner {
         maxSell = _maxSell;
+        emit SetMaxSell(_maxSell);
     }
 
     function setAntiWhaleEnd(uint256 _antiWhaleSellEnd) external onlyOwner {
         antiWhaleSellEnd = _antiWhaleSellEnd;
+        emit SetAntiWhaleEnd(_antiWhaleSellEnd);
     }
 
     /* ========== EMERGENCY ========== */
